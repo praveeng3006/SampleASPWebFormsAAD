@@ -206,6 +206,12 @@
     <Content Include="Content\bootstrap-theme.min.css.map" />
     <Content Include="Content\bootstrap-theme.css.map" />
     <None Include="Scripts\jquery-3.4.1.intellisense.js" />
+    <Content Include="HttpErrors\ASPError.aspx" />
+    <Content Include="HttpErrors\BadRequestError.aspx" />
+    <Content Include="HttpErrors\InternalServerError.aspx" />
+    <Content Include="HttpErrors\NotFoundError.aspx" />
+    <Content Include="HttpErrors\PermissionsRequired.aspx" />
+    <Content Include="HttpErrors\UnAuthorized.aspx" />
     <Content Include="Scripts\bootstrap.js" />
     <Content Include="Scripts\bootstrap.min.js" />
     <Content Include="Scripts\jquery-3.4.1.js" />
@@ -281,6 +287,50 @@
     </Compile>
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
+    </Compile>
+    <Compile Include="GraphModels\GraphRequest.cs" />
+    <Compile Include="GraphModels\GraphResponse.cs" />
+    <Compile Include="HttpErrors\ASPError.aspx.cs">
+      <DependentUpon>ASPError.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\ASPError.aspx.designer.cs">
+      <DependentUpon>ASPError.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="HttpErrors\BadRequestError.aspx.cs">
+      <DependentUpon>BadRequestError.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\BadRequestError.aspx.designer.cs">
+      <DependentUpon>BadRequestError.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="HttpErrors\InternalServerError.aspx.cs">
+      <DependentUpon>InternalServerError.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\InternalServerError.aspx.designer.cs">
+      <DependentUpon>InternalServerError.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="HttpErrors\NotFoundError.aspx.cs">
+      <DependentUpon>NotFoundError.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\NotFoundError.aspx.designer.cs">
+      <DependentUpon>NotFoundError.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="HttpErrors\PermissionsRequired.aspx.cs">
+      <DependentUpon>PermissionsRequired.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\PermissionsRequired.aspx.designer.cs">
+      <DependentUpon>PermissionsRequired.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="HttpErrors\UnAuthorized.aspx.cs">
+      <DependentUpon>UnAuthorized.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="HttpErrors\UnAuthorized.aspx.designer.cs">
+      <DependentUpon>UnAuthorized.aspx</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Site.Master.cs">

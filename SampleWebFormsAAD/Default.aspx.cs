@@ -27,13 +27,11 @@ using Microsoft.Owin.Security.OpenIdConnect;
 namespace SampleWebFormsAAD
 {
     public partial class _Default : Page
-    {// For simplicity, this sample uses an in-memory data store instead of a db.
+    {
      //private ConcurrentDictionary<string, List<Group>> groupList = new ConcurrentDictionary<string, List<Group>>();
         protected void Page_Load(object sender, EventArgs e)
         {
-            //var result =  Request.GetOwinContext().Authentication.AuthenticateAsync("Cookies").Result;
-            //string token = result.Properties.Dictionary["access_token"];
-
+            //Check User Authenticated else redirect to login
             if (!Request.IsAuthenticated)
             {
                 HttpContext.Current.GetOwinContext().Authentication.Challenge(
@@ -41,14 +39,19 @@ namespace SampleWebFormsAAD
                     OpenIdConnectAuthenticationDefaults.AuthenticationType);
             }
 
+            //Call Graph API to get List of User AD Group's among the List of AD Groups mentioned in Web.Config
+            GetUserMemberDetails_CallGraph_UsingAPICall();
 
-            // GetUserMemberDetails_CallGraph_UsingAPICall(); //Not working ..Getting exception Bad Request exception
+            #region CallGraphAPI_OtherApproaches
             // MISCApproaches(); //Not working ..Getting exception
             //CheckGroups_using_authProvider_MSDN(); //Not working ..Getting exception
             //CheckGroups_DotnetcoreApproach(); //Not working ..Getting exception
-            CheckGroups_using_authProvider_MSDN(); //Not working ..Getting exception
+            //CheckGroups_using_authProvider_MSDN(); //Not working ..Getting exception
+            #endregion
         }
-       
+
+
+        #region GraphAPICall_OtherApproaches_NotWorking
 
         public void CheckGroups_using_authProvider_MSDN()
         {
@@ -155,6 +158,8 @@ namespace SampleWebFormsAAD
             //	.AcquireTokenOnBehalfOf(new[] { "User.Read" }, new UserAssertion(userToken))
             //	.ExecuteAsync().Result;
         }
+        #endregion
+
 
         public void GetUserMemberDetails_CallGraph_UsingAPICall()
         {
@@ -162,30 +167,51 @@ namespace SampleWebFormsAAD
 
             try
             {
+           // Source: https://docs.microsoft.com/en-us/graph/api/user-checkmembergroups?view=graph-rest-1.0&tabs=http
+
                 // Get a token for our admin-restricted set of scopes Microsoft Graph
                 //string token = await GetGraphAccessToken(new string[] { "group.read.all" });
-                //commented above line ..changed scope"User.Read" in the below line
+               
                 string token = GetGraphAccessToken(new string[] { "User.Read" }).Result;
-                string[] groupkeys = new string[] { "1e587548-e2e3-48f4-b909-38d9316487bf", "ee48b026-276d-438d-bcaa-d322435d7a0c" };
-                var jsonPayload = new JArray(groupkeys);
-                var content = new StringContent(jsonPayload.ToString(), Encoding.UTF8, "application/json");
 
-                // Construct the groups query
+                //Get list of AD Groups Ids configured in Web.config these will be sent in API Call
+                var groupIds= ConfigurationManager.AppSettings["ida:AuthorizationGroups"].ToString().Split(',').ToList();
+                var graphAPIRequestGroupIDs = new GraphRequest() { groupIds =groupIds};
+                var content = new StringContent(JsonConvert.SerializeObject(graphAPIRequestGroupIDs), Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, Globals.MicrosoftGraphCheckMembersAPi);
                 request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
                 request.Content = content;
-                // Ensure a successful response
+               
                 //HttpResponseMessage response = await client.SendAsync(request);
                 //TODO :: Implement async operation as in the above line
                 HttpResponseMessage response = client.SendAsync(request).Result;
+                // Ensure a successful response
                 response.EnsureSuccessStatusCode();
 
                 // Populate the data store with the first page of groups
                 string json = response.Content.ReadAsStringAsync().Result;
-                //GroupResponse result = JsonConvert.DeserializeObject<GroupResponse>(json);
+               var result = JsonConvert.DeserializeObject<GraphResponse>(json);
+                
+                
                 //groupList[tenantId] = result.value;
                 //return "Sampleresponse"+ json;
+
+                /*var contentHardCoded = new StringContent(@"{
+                              'groupIds': [
+                                '1e587548-e2e3-48f4-b909-38d9316487bf',
+                                'ee48b026-276d-438d-bcaa-d322435d7a0c',
+                                '36ab62a0-7a90-4a0a-b911-1cd56b604ba2',
+                                '5a873f08-0bcd-4613-9b39-49095b386bbc'
+                              ]
+                            }", Encoding.UTF8, "application/json");
+                */
+                //string[] groupkeys = new string[] { "1e587548-e2e3-48f4-b909-38d9316487bf", "ee48b026-276d-438d-bcaa-d322435d7a0c" };
+                //var jsonPayload = new JArray(groupkeys);
+                //var content1 = new StringContent(jsonPayload.ToString(), Encoding.UTF8, "application/json");
+                //var graphRequest = new GraphRequest() { groupIds = new List<string>() { "1e587548-e2e3-48f4-b909-38d9316487bf", "ee48b026-276d-438d-bcaa-d322435d7a0c" } };
+
+
             }
             catch (MsalUiRequiredException ex)
             {
@@ -197,22 +223,33 @@ namespace SampleWebFormsAAD
 					  It will get wiped out while the user will be authenticated still because of their cookies, requiring the TokenCache to be initialized again
 					  through the sign in flow.
 					*/
-                    Response.Redirect("/Account/SignIn/?redirectUrl=/Groups");
+                    // Response.Redirect("/Account/SignIn/?redirectUrl=/Groups");
+                    if (!Request.IsAuthenticated)
+                    {
+                        HttpContext.Current.GetOwinContext().Authentication.Challenge(
+                            new AuthenticationProperties { RedirectUri = "/" },
+                            OpenIdConnectAuthenticationDefaults.AuthenticationType);
+                    }
                 }
                 else if (ex.ErrorCode == "invalid_grant")
                 {
                     // If we got a token for the basic scopes, but not the admin-restricted scopes,
                     // then we need to ask the admin to grant permissions by by connecting their tenant.
                     //return new RedirectResult("/Account/PermissionsRequired");
+
+                    //*****************TODO:: LOG THE EXCEPTION DETAILS HERE*********************
+                    Response.Redirect("HttpErrors/PermissionsRequired?message=" + ex.Message);
                 }
                 else
-                    Response.Redirect("/Error?message=" + ex.Message);
+                { //*****************TODO:: LOG THE EXCEPTION DETAILS HERE*********************
+                    Response.Redirect("HttpErrors/InternalServerError?message=" + ex.Message);
+                }
 
             }
             // Handle unexpected errors.
             catch (Exception ex)
             {
-                Response.Redirect("/Error?message=" + ex.Message);
+                Response.Redirect("HttpErrors/InternalServerError?message=" + ex.Message);
             }
 
         }
