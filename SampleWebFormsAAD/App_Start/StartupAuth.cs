@@ -23,6 +23,10 @@ using System.Security.Claims;
 using Microsoft.Graph.Auth;
 using Microsoft.Graph;
 using System.Net.Http.Headers;
+using System.Net.Http;
+using Newtonsoft.Json;
+using System.Text;
+using System.Security.Claims;
 
 namespace SampleWebFormsAAD
 {
@@ -49,22 +53,34 @@ namespace SampleWebFormsAAD
                     ClientId = clientId,
                     Authority = authority,
                     PostLogoutRedirectUri = postLogoutRedirectUri,
-                   
-                    
+
+
                     Notifications = new OpenIdConnectAuthenticationNotifications()
                     {
-                        //SecurityTokenValidated = OnSecurityTokenValidated,
+                        // SecurityTokenValidated = OnSecurityTokenValidated,
                         AuthorizationCodeReceived = OnAuthorizationCodeReceived,
                         AuthenticationFailed = (context) =>
                         {
                             return System.Threading.Tasks.Task.FromResult(0);
                         },
-                        
+                        RedirectToIdentityProvider=(context)=>
+                        {
+               // NOTE:IF User is authenticated & Not have access to any page then Redirect him to UnAuthorized page instead of login page to "AVOID INFINITE LOOP ISSUE" (In case of Role based Authorization)
+                            if(context.OwinContext.Authentication.User.Identity.IsAuthenticated && context.OwinContext.Response.StatusCode==401)
+                            {
+                                context.OwinContext.Response.Redirect("/HttpErrors/unauthorized.aspx");
+                                context.HandleResponse();
+                            }
+                            //if(context.OwinContext.Request.Path.Value != "/Account/SignInWithOpenId")
+                            
+                            return Task.FromResult(0);
+                        }
+
                     }
 
                 }
                 );
-            
+
 
             // This makes any middleware defined above this line run before the Authorization rule is applied in web.config
             app.UseStageMarker(PipelineStage.Authenticate);
@@ -87,7 +103,7 @@ namespace SampleWebFormsAAD
         private Task OnAuthenticationFailed(AuthenticationFailedNotification<Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> context)
         {
             // Handle any unexpected errors during sign in
-            context.OwinContext.Response.Redirect("/Error?message=" + context.Exception.Message);
+            context.OwinContext.Response.Redirect("HttpErrors/InternalServerError?message=" + context.Exception.Message);
             context.HandleResponse(); // Suppress the exception
             return Task.FromResult(0);
         }
@@ -107,9 +123,26 @@ namespace SampleWebFormsAAD
             // Upon successful sign in, get & cache a token using MSAL
             AuthenticationResult result = await confidentialClient.AcquireTokenByAuthorizationCode(new[] { "User.Read" }, context.Code).ExecuteAsync();
             var accessToken = result.AccessToken;
+            var groupIds= await GetUserMemberDetails_CallGraph_UsingAPICall(accessToken);
+
+
+            var identityUser = new ClaimsIdentity(
+        context.AuthenticationTicket.Identity.Claims,
+        context.AuthenticationTicket.Identity.AuthenticationType,
+        ClaimTypes.Name,
+        ClaimTypes.Role);
+            identityUser.AddClaim(new Claim(ClaimTypes.Role, "SampleRoleClaimStartup"));
+            var claims = groupIds.Select(grpId => new Claim(ClaimTypes.Role, grpId));
+            identityUser.AddClaims(claims);
+            context.AuthenticationTicket = new AuthenticationTicket(identityUser, context.AuthenticationTicket.Properties);
+
         }
         private Task OnSecurityTokenValidated(SecurityTokenValidatedNotification<Microsoft.IdentityModel.Protocols.OpenIdConnect.OpenIdConnectMessage, OpenIdConnectAuthenticationOptions> context)
         {
+
+
+
+
             // Verify the user signing in is a business user, not a consumer user. Microsoft.IdentityModel.Protocols.OpenIdConnect
             string[] issuer = context.AuthenticationTicket.Identity.FindFirst(Globals.IssuerClaim).Value.Split('/');
             string tenantId = issuer[(issuer.Length - 2)];
@@ -120,6 +153,91 @@ namespace SampleWebFormsAAD
 
             return Task.FromResult(0);
         }
+
+        #region GraphAPICall_ToGetListAzureADGroupsofUser
+        public async Task<List<string>> GetUserMemberDetails_CallGraph_UsingAPICall(string accessToken)
+        {
+            GraphResponse result = new GraphResponse();
+            try
+            {
+                // Source: https://docs.microsoft.com/en-us/graph/api/user-checkmembergroups?view=graph-rest-1.0&tabs=http
+
+                // Get a token for our admin-restricted set of scopes Microsoft Graph
+                //string token = await GetGraphAccessToken(new string[] { "group.read.all" });
+
+                //string accessToken = GetGraphAccessToken(new string[] { "User.Read" }).Result;
+
+                //Get list of AD Groups Ids configured in Web.config these will be sent in API Call
+                var groupIds = ConfigurationManager.AppSettings["ida:AuthorizationGroups"].ToString().Split(',').ToList();
+                var graphAPIRequestGroupIDs = new GraphRequest() { groupIds = groupIds };
+                var content = new StringContent(JsonConvert.SerializeObject(graphAPIRequestGroupIDs), Encoding.UTF8, "application/json");
+                HttpClient client = new HttpClient();
+                HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, Globals.MicrosoftGraphCheckMembersAPi);
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
+                request.Content = content;
+
+                //HttpResponseMessage response = await client.SendAsync(request);
+                //TODO :: Implement async operation as in the above line
+                HttpResponseMessage response = await client.SendAsync(request);
+                // Ensure a successful response
+                response.EnsureSuccessStatusCode();
+
+                // Populate the data store with the first page of groups
+                string json = response.Content.ReadAsStringAsync().Result;
+                result = JsonConvert.DeserializeObject<GraphResponse>(json);
+                return result.value;
+                //Create the roles with AD GroupId's and Assign it to user
+                //var identity = ClaimsPrincipal.Current.Identity as ClaimsIdentity;
+                //var claims=result.value.Select(grpId => new Claim(ClaimTypes.Role, grpId));
+                //identity.AddClaims(claims);
+
+            }
+            catch (MsalUiRequiredException ex)
+            {
+                if (ex.ErrorCode == "user_null")
+                {
+                    /*
+					  If the tokens have expired or become invalid for any reason, ask the user to sign in again.
+					  Another cause of this exception is when you restart the app using InMemory cache.
+					  It will get wiped out while the user will be authenticated still because of their cookies, requiring the TokenCache to be initialized again
+					  through the sign in flow.
+					*/
+                    // Response.Redirect("/Account/SignIn/?redirectUrl=/Groups");
+
+                    HttpContext.Current.GetOwinContext().Authentication.Challenge(
+                   new AuthenticationProperties { RedirectUri = "/" },
+                   OpenIdConnectAuthenticationDefaults.AuthenticationType);
+
+                }
+                else if (ex.ErrorCode == "invalid_grant")
+                {
+                    // If we got a token for the basic scopes, but not the admin-restricted scopes,
+                    // then we need to ask the admin to grant permissions by by connecting their tenant.
+                    //return new RedirectResult("/Account/PermissionsRequired");
+
+                    //*****************TODO:: LOG THE EXCEPTION DETAILS HERE*********************
+                    HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/PermissionsRequired?message=" + ex.Message);
+                    // Suppress the exception
+
+                }
+                else
+                { //*****************TODO:: LOG THE EXCEPTION DETAILS HERE*********************
+                    HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/InternalServerError?message=" + ex.Message);
+                }
+                return result?.value;
+
+            }
+            // Handle unexpected errors.
+            catch (Exception ex)
+            {
+                //*****************TODO:: LOG THE EXCEPTION DETAILS HERE*********************
+                HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/InternalServerError?message=" + ex.Message);
+                return result?.value;
+            }
+
+        }
+        #endregion
+
 
     }
 }

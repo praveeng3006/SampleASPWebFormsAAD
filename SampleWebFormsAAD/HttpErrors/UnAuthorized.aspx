@@ -9,7 +9,7 @@
 <body>
     <form id="form1" runat="server">
         <div>
-            This Http 401 - Bad Request Error Page
+            This Http 401 - UnAuthorized Error Page
         </div>
     </form>
 </body>

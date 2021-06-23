@@ -38,9 +38,14 @@ namespace SampleWebFormsAAD
                     new AuthenticationProperties { RedirectUri = "/" },
                     OpenIdConnectAuthenticationDefaults.AuthenticationType);
             }
+            string tenantId = ClaimsPrincipal.Current.FindFirst(Globals.TenantIdClaimType).Value;
+
+            List<string> claims= ClaimsPrincipal.Current.Claims.Where(x => x.Type == ClaimTypes.Role).Select(x=>x.Value).ToList();
+            lvList.DataSource = claims;
+            lvList.DataBind();
 
             //Call Graph API to get List of User AD Group's among the List of AD Groups mentioned in Web.Config
-            GetUserMemberDetails_CallGraph_UsingAPICall();
+            //GetUserMemberDetails_CallGraph_UsingAPICall();
 
             #region CallGraphAPI_OtherApproaches
             // MISCApproaches(); //Not working ..Getting exception
@@ -254,7 +259,7 @@ namespace SampleWebFormsAAD
 
         }
         /// <summary>
-		/// We obtain access token for Microsoft Graph with the scope "group.read.all". Since this access token was not obtained during the initial sign in process 
+		/// We obtain access token for Microsoft Graph with the scope "User.Read". Since this access token was not obtained during the initial sign in process 
 		/// (OnAuthorizationCodeReceived), the user will be prompted to consent again.
 		/// </summary>
 		/// <returns></returns>

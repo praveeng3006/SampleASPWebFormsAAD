@@ -1,6 +1,7 @@
 ﻿using Microsoft.Owin.Security;
 using Microsoft.Owin.Security.Cookies;
 using Microsoft.Owin.Security.OpenIdConnect;
+using SampleWebFormsAAD.Util;
 using System;
 using System.Collections.Generic;
 using System.Security.Claims;
@@ -20,6 +21,11 @@ namespace SampleWebFormsAAD
         }
         protected void Unnamed_LoggingOut(object sender, LoginCancelEventArgs e)
         {
+            //Clear the Cache of this application ..added by praveen.k
+            MsalAppBuilder.ClearUserTokenCache().GetAwaiter().GetResult();
+
+            //Below two lines is as per the OWIN Standard
+
             // Redirect to ~/Account/SignOut after signing out.
             string callbackUrl = Request.Url.GetLeftPart(UriPartial.Authority) + Response.ApplyAppPathModifier("~/Account/SignOut");
 

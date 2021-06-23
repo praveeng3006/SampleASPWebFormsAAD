@@ -187,6 +187,7 @@
     <Content Include="About.aspx" />
     <Content Include="Account\SignOut.aspx" />
     <Content Include="AdminModule\AdminHome.aspx" />
+    <Content Include="AdminModule\ModuleC.aspx" />
     <Content Include="Contact.aspx" />
     <Content Include="Content\bootstrap-theme.css" />
     <Content Include="Content\bootstrap-theme.min.css" />
@@ -260,6 +261,13 @@
     </Compile>
     <Compile Include="AdminModule\AdminHome.aspx.designer.cs">
       <DependentUpon>AdminHome.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AdminModule\ModuleC.aspx.cs">
+      <DependentUpon>ModuleC.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AdminModule\ModuleC.aspx.designer.cs">
+      <DependentUpon>ModuleC.aspx</DependentUpon>
     </Compile>
     <Compile Include="App_Start\BundleConfig.cs" />
     <Compile Include="About.aspx.cs">
