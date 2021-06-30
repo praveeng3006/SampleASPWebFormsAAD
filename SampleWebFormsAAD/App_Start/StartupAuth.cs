@@ -128,7 +128,7 @@ namespace SampleWebFormsAAD
             Dictionary<string, string> roleGroups = new Dictionary<string, string>();
             if (authGroupsSettings.Count == 0)
             {
-                HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/PermissionsRequired?message=AADAuthorizationGroups section not found in the web.conifg . Please specify the same");
+                HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/InternalServerError?message=AADAuthorizationGroups section not found in the web.conifg . Please specify the same");
             }
             else
             {
