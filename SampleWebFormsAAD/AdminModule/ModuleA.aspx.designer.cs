@@ -11,7 +11,7 @@ namespace SampleWebFormsAAD.AdminModule
 {
 
 
-    public partial class ModuleC
+    public partial class ModuleA
     {
     }
 }

@@ -27,6 +27,7 @@ using System.Net.Http;
 using Newtonsoft.Json;
 using System.Text;
 using System.Security.Claims;
+using System.Collections.Specialized;
 
 namespace SampleWebFormsAAD
 {
@@ -123,16 +124,29 @@ namespace SampleWebFormsAAD
             // Upon successful sign in, get & cache a token using MSAL
             AuthenticationResult result = await confidentialClient.AcquireTokenByAuthorizationCode(new[] { "User.Read" }, context.Code).ExecuteAsync();
             var accessToken = result.AccessToken;
-            var groupIds= await GetUserMemberDetails_CallGraph_UsingAPICall(accessToken);
+            var authGroupsSettings = ConfigurationManager.GetSection("AADAuthorizationGroups") as NameValueCollection;
+            Dictionary<string, string> roleGroups = new Dictionary<string, string>();
+            if (authGroupsSettings.Count == 0)
+            {
+                HttpContext.Current.GetOwinContext().Response.Redirect("HttpErrors/PermissionsRequired?message=AADAuthorizationGroups section not found in the web.conifg . Please specify the same");
+            }
+            else
+            {
+                foreach (var key in authGroupsSettings.AllKeys)
+                {
+                    Console.WriteLine(key + " = " + authGroupsSettings[key]);
+                    roleGroups.Add(key, authGroupsSettings[key]);
 
-
+                }
+            }
+            var groupIds= await GetUserMemberDetails_CallGraph_UsingAPICall(accessToken, roleGroups);
             var identityUser = new ClaimsIdentity(
         context.AuthenticationTicket.Identity.Claims,
         context.AuthenticationTicket.Identity.AuthenticationType,
         ClaimTypes.Name,
         ClaimTypes.Role);
             identityUser.AddClaim(new Claim(ClaimTypes.Role, "SampleRoleClaimStartup"));
-            var claims = groupIds.Select(grpId => new Claim(ClaimTypes.Role, grpId));
+            var claims = groupIds.Select(grpId => new Claim(ClaimTypes.Role, roleGroups[grpId]));
             identityUser.AddClaims(claims);
             context.AuthenticationTicket = new AuthenticationTicket(identityUser, context.AuthenticationTicket.Properties);
 
@@ -155,7 +169,7 @@ namespace SampleWebFormsAAD
         }
 
         #region GraphAPICall_ToGetListAzureADGroupsofUser
-        public async Task<List<string>> GetUserMemberDetails_CallGraph_UsingAPICall(string accessToken)
+        public async Task<List<string>> GetUserMemberDetails_CallGraph_UsingAPICall(string accessToken, Dictionary<string, string> configuredRoleGroups)
         {
             GraphResponse result = new GraphResponse();
             try
@@ -169,7 +183,23 @@ namespace SampleWebFormsAAD
 
                 //Get list of AD Groups Ids configured in Web.config these will be sent in API Call
                 var groupIds = ConfigurationManager.AppSettings["ida:AuthorizationGroups"].ToString().Split(',').ToList();
-                var graphAPIRequestGroupIDs = new GraphRequest() { groupIds = groupIds };
+                //var authGroupsSettings = ConfigurationManager.GetSection("AADAuthorizationGroups") as NameValueCollection;
+                //Dictionary<string, string> roleGroups = new Dictionary<string, string>();
+                //if (authGroupsSettings.Count == 0)
+                //{
+                //    Console.WriteLine("Application Settings are not defined");
+                //}
+                //else
+                //{
+                //    foreach (var key in authGroupsSettings.AllKeys)
+                //    {
+                //        Console.WriteLine(key + " = " + authGroupsSettings[key]);
+                //        roleGroups.Add(key, authGroupsSettings[key]);
+
+                //    }
+                //}
+                // var graphAPIRequestGroupIDs = new GraphRequest() { groupIds = groupIds };
+                var graphAPIRequestGroupIDs = new GraphRequest() { groupIds = configuredRoleGroups.Keys.ToList() };
                 var content = new StringContent(JsonConvert.SerializeObject(graphAPIRequestGroupIDs), Encoding.UTF8, "application/json");
                 HttpClient client = new HttpClient();
                 HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Post, Globals.MicrosoftGraphCheckMembersAPi);

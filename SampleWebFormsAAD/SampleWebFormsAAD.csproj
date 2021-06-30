@@ -187,6 +187,9 @@
     <Content Include="About.aspx" />
     <Content Include="Account\SignOut.aspx" />
     <Content Include="AdminModule\AdminHome.aspx" />
+    <Content Include="AdminModule\ModuleA.aspx" />
+    <Content Include="AdminModule\ModuleAA.aspx" />
+    <Content Include="AdminModule\ModuleB.aspx" />
     <Content Include="AdminModule\ModuleC.aspx" />
     <Content Include="Contact.aspx" />
     <Content Include="Content\bootstrap-theme.css" />
@@ -261,6 +264,27 @@
     </Compile>
     <Compile Include="AdminModule\AdminHome.aspx.designer.cs">
       <DependentUpon>AdminHome.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AdminModule\ModuleA.aspx.cs">
+      <DependentUpon>ModuleA.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AdminModule\ModuleA.aspx.designer.cs">
+      <DependentUpon>ModuleA.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AdminModule\ModuleAA.aspx.cs">
+      <DependentUpon>ModuleAA.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AdminModule\ModuleAA.aspx.designer.cs">
+      <DependentUpon>ModuleAA.aspx</DependentUpon>
+    </Compile>
+    <Compile Include="AdminModule\ModuleB.aspx.cs">
+      <DependentUpon>ModuleB.aspx</DependentUpon>
+      <SubType>ASPXCodeBehind</SubType>
+    </Compile>
+    <Compile Include="AdminModule\ModuleB.aspx.designer.cs">
+      <DependentUpon>ModuleB.aspx</DependentUpon>
     </Compile>
     <Compile Include="AdminModule\ModuleC.aspx.cs">
       <DependentUpon>ModuleC.aspx</DependentUpon>

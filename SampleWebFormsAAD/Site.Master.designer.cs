@@ -7,10 +7,12 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace WebFromsSSO {
-    
-    
-    public partial class SiteMaster {
+namespace SampleWebFormsAAD
+{
+
+
+    public partial class SiteMaster
+    {
 
         /// <summary>
         /// A1 control.
@@ -49,7 +51,6 @@ namespace WebFromsSSO {
         protected global::System.Web.UI.HtmlControls.HtmlAnchor A4;
 
         /// <summary>
-
         /// MainContent control.
         /// </summary>
         /// <remarks>

@@ -11,7 +11,7 @@
     <asp:PlaceHolder runat="server">
         <%: Scripts.Render("~/bundles/modernizr") %>
     </asp:PlaceHolder>
-    <webopt:bundlereference runat="server" path="~/Content/css" />
+    <webopt:BundleReference runat="server" Path="~/Content/css" />
     <link href="~/favicon.ico" rel="shortcut icon" type="image/x-icon" />
 
 </head>
@@ -52,6 +52,17 @@
                         <li><a id="A2" runat="server" href="~/">Home</a></li>
                         <li><a id="A3" runat="server" href="~/About">About</a></li>
                         <li><a id="A4" runat="server" href="~/Contact">Contact</a></li>
+
+
+                        <li class="dropdown">
+                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">Admin Module<span class="caret"></span></a>
+                            <ul class="dropdown-menu">
+                                <li><a href="~/AdminModule/AdminHome.aspx" runat="server">Home</a></li>
+                                <li><a href="~/AdminModule/ModuleA.aspx" runat="server">Module A</a></li>
+                                <li><a href="~/AdminModule/ModuleB.aspx" runat="server">Module B</a></li>
+                                <li><a href="~/AdminModule/ModuleC.aspx" runat="server">Module C</a></li>
+                            </ul>
+                        </li>
                     </ul>
                     <asp:LoginView runat="server" ViewStateMode="Disabled">
                         <LoggedInTemplate>
@@ -65,8 +76,9 @@
                         </LoggedInTemplate>
                         <AnonymousTemplate>
                             <ul class="nav navbar-nav  navbar-right">
-                             <li><asp:LinkButton Text="Sign in" runat="server" OnClick="Unnamed_Click" />
-                             </li>
+                                <li>
+                                    <asp:LinkButton Text="Sign in" runat="server" OnClick="Unnamed_Click" />
+                                </li>
                             </ul>
                         </AnonymousTemplate>
                     </asp:LoginView>
